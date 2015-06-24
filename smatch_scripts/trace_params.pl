@@ -8,7 +8,7 @@ use strict;
 
 sub usage()
 {
-    print ("trace_params.pl <smatch output file> <function> <parameter>\n");
+    print ("trace_params.pl <smatch output file> <function> <parameter> [<function2> <parameter2> ...]\n");
     exit(1);
 }
 
@@ -24,7 +24,7 @@ sub recurse($$)
     my $target = shift;
     my $found = 0;
 
-    if ($link =~ /$target/) {
+    if ($link eq $target) {
         $param_map{$link}->{found} = $FOUND;
         return 1;
     }
@@ -82,7 +82,7 @@ sub load_all($)
     }
 }
 
-sub print_found()
+sub print_found_and_reset()
 {
     foreach my $func (keys %param_map){
         my $tmp = $param_map{$func};
@@ -91,14 +91,12 @@ sub print_found()
             my ($f, $p) = split(/%/, $func);
             print("$f $p\n");
         }
+	$tmp->{found} = $UNKNOWN;
     }
 }
 
 my $file = shift();
-my $func = shift();
-my $param = shift();
-
-if (!$file or !$func or !defined($param)) {
+if (!$file or scalar @ARGV % 2 != 0) {
     usage();
 }
 
@@ -108,5 +106,9 @@ if (! -e $file) {
 }
 
 load_all($file);
-compress_all($func, $param);
-print_found();
+while (@ARGV) {
+    my $func = shift();
+    my $param = shift();
+    compress_all($func, $param);
+    print_found_and_reset();
+}

@@ -25,7 +25,7 @@
  * Passing "bar" to foo() really means passing "bar" to baz();
  * 
  * In this case it would print:
- * info: param_mapper 0 => bar 1
+ * foo() info: param_mapper 0 => baz 1
  *
  */
 

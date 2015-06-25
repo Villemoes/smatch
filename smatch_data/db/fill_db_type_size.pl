@@ -120,16 +120,8 @@ sub print_info($$)
 {
     my $type = shift;
     my $union = shift;
-    my $printed_range = "";
-    my $i = 0;
+    my $printed_range = join(",", map {print_range($_)} @$union);
 
-    foreach my $range (@$union) {
-        if ($i) {
-            $printed_range = $printed_range . ",";
-        }
-        $i++;
-        $printed_range = $printed_range . print_range($range);
-    }
     my $sql = "insert into type_size values ('$type', '$printed_range');";
     $db->do($sql);
 }

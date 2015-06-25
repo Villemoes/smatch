@@ -16,18 +16,20 @@ sub get_too_common_functions($$$)
     my $path = shift;
     my $project = shift;
     my $warns = shift;
+    my %count;
 
-    open(FUNCS, "grep 'SQL_caller_info: ' $warns | grep '%call_marker%' | cut -d \"'\" -f 6 | sort | uniq -c | ");
-
+    open(FUNCS, '<', $warns);
     while (<FUNCS>) {
-        if ($_ =~ /(\d+) (.*)/) {
-            if (int($1) > 200) {
-                $too_common_funcs{$2} = 1;
-            }
-        }
+	next unless s/^.*SQL_caller_info:\t//;
+	next unless m/%call_marker%/;
+	my (undef, undef, $callee, undef) = split /\t/;
+	$count{$callee}++;
     }
-
     close(FUNCS);
+
+    for (keys %count) {
+	$too_common_funcs{$_} = 1 if $count{$_} > 200;
+    }
 
     open(FILE, "$path/../$project.common_functions");
     while (<FILE>) {
@@ -58,42 +60,44 @@ $db->do("PRAGMA count_changes = OFF");
 $db->do("PRAGMA temp_store = MEMORY");
 $db->do("PRAGMA locking = EXCLUSIVE");
 
+my $sth = $db->prepare("insert into caller_info values ('unknown', 'too common', ?, 0, 0, 0, -1, '', '')");
 foreach my $func (keys %too_common_funcs) {
-    $db->do("insert into caller_info values ('unknown', 'too common', '$func', 0, 0, 0, -1, '', '');");
+    $sth->execute($func);
 }
 
 my $call_id = 0;
 my ($fn, $dummy, $sql);
+my $total = 0;
+
+
+# file, caller, callee, CALL_ID, static, type, param, key, value
+$sth = $db->prepare("insert into caller_info values (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 open(WARNS, "<$warns");
 while (<WARNS>) {
-    # test.c:11 frob() SQL_caller_info: insert into caller_info values ('test.c', 'frob', '__smatch_buf_size', %CALL_ID%, 1, 0, -1, '', ');
+    chomp;
 
-    if (!($_ =~ /^.*? \w+\(\) SQL_caller_info: /)) {
-        next;
-    }
-    ($dummy, $dummy, $dummy, $dummy, $dummy, $fn, $dummy) = split(/'/);
+    next unless s/^.*SQL_caller_info:\t//;
+    my ($file, $caller, $callee, $static, $type, $param, $key, $value) = split /\t/;
 
-    if ($fn =~ /__builtin_/) {
-        next;
-    }
-    if ($fn =~ /^(printk|memset|memcpy|kfree|printf|dev_err|writel)$/) {
-        next;
-    }
+    next if $callee =~ /^__builtin_/;
 
-    if (defined($too_common_funcs{$fn})) {
-        next;
-    }
+    next if $callee =~ /^(printk|memset|memcpy|kfree|printf|dev_err|writel)$/;
 
-    ($dummy, $dummy, $sql) = split(/:/, $_, 3);
+    next if exists $too_common_funcs{$callee};
 
-    $sql =~ s/%CALL_ID%/$call_id/;
-    if ($sql =~ /%call_marker%/) {
-        $sql =~ s/%call_marker%//; # don't need this taking space in the db.
-        $call_id++;
+
+    # file, caller, callee, CALL_ID, static, type, param, key, value
+
+    my $inc = 0;
+    if ($key eq '%call_marker%') {
+	$key = '';
+	$inc = 1;
     }
 
-    $db->do($sql);
+    $sth->execute($file, $caller, $callee, $call_id, $static, $type, $param, $key, $value);
+
+    $call_id += $inc;
 }
 $db->commit();
 $db->disconnect();

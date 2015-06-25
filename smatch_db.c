@@ -208,8 +208,8 @@ void sql_insert_caller_info(struct expression *call, int type,
 	if (is_common_function(fn))
 		return;
 
-	sm_msg("SQL_caller_info: insert into caller_info values ("
-	       "'%s', '%s', '%s', %%CALL_ID%%, %d, %d, %d, '%s', '%s');",
+	sm_msg("SQL_caller_info:\t"
+	       "%s\t%s\t%s\t%d\t%d\t%d\t%s\t%s",
 	       get_base_file(), get_function(), fn, is_static(call->fn),
 	       type, param, key, value);
 

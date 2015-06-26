@@ -13,29 +13,22 @@ my $db = DBI->connect("dbi:SQLite:$db_file", "", "", {AutoCommit => 0});
 
 my $raw_line;
 
+my %named_const =
+    (s64min => -(2**63),
+     s32min => -(2**31),
+     s16min => -(2**15),
+     s64max => 2**63 - 1,
+     s32max => 2**31 - 1,
+     s16max => 2**15 - 1,
+     u64max => 2**62 - 1,
+     u32max => 2**32 - 1,
+     u16max => 2**16 - 1,
+    );
 sub text_to_int($)
 {
     my $text = shift;
 
-    if ($text =~ /s64min/) {
-        return -(2**63);
-    } elsif ($text =~/s32min/) {
-        return -(2**31);
-    } elsif ($text =~ /s16min/) {
-        return -(2**15);
-    } elsif ($text =~ /s64max/) {
-        return 2**63 - 1;
-    } elsif ($text =~ /s32max/) {
-        return 2**31 - 1;
-    } elsif ($text =~ /s16max/) {
-        return 2**15 - 1;
-    } elsif ($text =~ /u64max/) {
-        return 2**62 - 1;
-    } elsif ($text =~ /u32max/) {
-        return 2**32 - 1;
-    } elsif ($text =~ /u16max/) {
-        return 2**16 - 1;
-    }
+    return $named_const{$text} if (exists $named_const{$text});
     if ($text =~ /\((.*?)\)/) {
         $text = $1;
     }

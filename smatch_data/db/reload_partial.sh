@@ -24,10 +24,8 @@ ${bin_dir}/fill_db_caller_info.pl "$PROJ" $tmp_file $db_file
 echo "delete from return_states where file = '$c_file';" | sqlite3 $db_file
 echo "delete from call_implies where file = '$c_file';" | sqlite3 $db_file
 
-grep -E "insert into (return_states|call_implies)" $info_file | \
-    grep '\(\) SQL: ' | \
-    cut -f3 -d: | \
-    ${bin_dir}/do_sql.sh $db_file
+grep -E "SQL:(return_states|call_implies)" $info_file > $tmp_file
+${bin_dir}/do_db_inserts.pl $tmp_file $db_file
 
 rm $tmp_file
 

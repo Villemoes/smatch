@@ -28,6 +28,45 @@ static sqlite3 *mem_db;
 
 static int return_id;
 
+/*
+ * Eww! For inserting into the in-memory database, we need to build a
+ * full sql statement with quotes and all, so that we can do
+ * sqlite3_exec on it. We used to print the same 'insert into ...'
+ * yadda yadda to the .c.smatch file. But executing those millions of
+ * sql statements one by one afterwards takes forever, so it is better
+ * to write the data in a more compact format, more suitable for
+ * feeding to prepared statements. That also reduces the size of the
+ * combined smatch_warns.txt by 10-20%, which in turn leads to less
+ * page cache pressure/disk activity.
+ *
+ * To achieve that, we define two format strings for each of the
+ * tables sql_insert might be used on. Sorry about this...
+ */
+
+#define  mem_fmt__return_states "'%s', '%s', %lu, %d, '%s', %d, %d, %d, '%s', '%s'"
+#define info_fmt__return_states "%s\t%s\t%lu\t%d\t%s\t%d\t%d\t%d\t%s\t%s"
+
+#define  mem_fmt__function_ptr "'%s', '%s', '%s', 0"
+#define info_fmt__function_ptr "%s\t%s\t%s\t0"
+
+#define  mem_fmt__call_implies "'%s', '%s', %lu, %d, %d, %d, '%s', %s"
+#define info_fmt__call_implies "%s\t%s\t%lu\t%d\t%d\t%d\t%s\t%s"
+
+#define  mem_fmt__function_type_size "'%s', '%s', '%s', '%s'"
+#define info_fmt__function_type_size "%s\t%s\t%s\t%s"
+
+#define  mem_fmt__local_values "'%s', '%s', '%s'"
+#define info_fmt__local_values "%s\t%s\t%s"
+
+#define  mem_fmt__function_type_value "'%s', '%s', '%s', '%s'"
+#define info_fmt__function_type_value "%s\t%s\t%s\t%s"
+
+#define  mem_fmt__function_type_info "'%s', '%s', %d, %d, '%s'"
+#define info_fmt__function_type_info "%s\t%s\t%d\t%d\t%s"
+
+#define  mem_fmt__data_info "'%s', '%s', %d, '%s'"
+#define info_fmt__data_info "%s\t%s\t%d\t%s"
+
 #define sql_insert(table, fmt, values...)					\
 do {										\
 	if (!mem_db)								\
@@ -39,7 +78,7 @@ do {										\
 										\
 		p += snprintf(p, buf + sizeof(buf) - p,				\
 			      "insert into %s values (", #table);		\
-		p += snprintf(p, buf + sizeof(buf) - p, fmt, values);		\
+		p += snprintf(p, buf + sizeof(buf) - p, mem_fmt__ ## table, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
 		sm_debug("in-mem: %s\n", buf);					\
 		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);			\
@@ -51,8 +90,7 @@ do {										\
 	}									\
 	if (option_info) {							\
 		sm_prefix();							\
-	        sm_printf("SQL: insert into " #table " values (" fmt, values);	\
-	        sm_printf(");\n");						\
+	        sm_printf("SQL:" #table "\t" info_fmt__ ## table "\n", values);	\
 	}									\
 } while (0)
 

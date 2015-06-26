@@ -26,8 +26,8 @@ for i in ${bin_dir}/*.schema ; do
     cat $i | sqlite3 $db_file
 done
 
-stamp fill_db_sql.sh
-${bin_dir}/fill_db_sql.sh $info_file $db_file
+stamp do_db_inserts.pl
+${bin_dir}/do_db_inserts.pl $info_file $db_file
 stamp fill_db_caller_info.pl
 ${bin_dir}/fill_db_caller_info.pl "$PROJ" $info_file $db_file
 stamp build_early_index.sh

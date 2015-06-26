@@ -28,7 +28,7 @@ static sqlite3 *mem_db;
 
 static int return_id;
 
-#define sql_insert(table, values...)						\
+#define sql_insert(table, fmt, values...)					\
 do {										\
 	if (!mem_db)								\
 		break;								\
@@ -39,7 +39,7 @@ do {										\
 										\
 		p += snprintf(p, buf + sizeof(buf) - p,				\
 			      "insert into %s values (", #table);		\
-		p += snprintf(p, buf + sizeof(buf) - p, values);		\
+		p += snprintf(p, buf + sizeof(buf) - p, fmt, values);		\
 		p += snprintf(p, buf + sizeof(buf) - p, ");");			\
 		sm_debug("in-mem: %s\n", buf);					\
 		rc = sqlite3_exec(mem_db, buf, NULL, 0, &err);			\
@@ -51,7 +51,7 @@ do {										\
 	}									\
 	if (option_info) {							\
 		sm_prefix();							\
-	        sm_printf("SQL: insert into " #table " values (" values);	\
+	        sm_printf("SQL: insert into " #table " values (" fmt, values);	\
 	        sm_printf(");\n");						\
 	}									\
 } while (0)

@@ -46,7 +46,7 @@ sub add_range($$$)
     my $max = shift;
     my %range;
     my @return_union;
-    my $added = 0;
+    my $added = "";
     my $check_next = 0;
 
     $range{min} = $min;
@@ -61,17 +61,17 @@ sub add_range($$$)
         if ($range{max} < $tmp->{min}) {
             push @return_union, \%range;
             push @return_union, $tmp;
-            $added = 1;
+            $added = "foo";
         } elsif ($range{min} <= $tmp->{min}) {
             if ($range{max} <= $tmp->{max}) {
                 $range{max} = $tmp->{max};
                 push @return_union, \%range;
-                $added = 1;
+                $added = "foo";
             }
         } elsif ($range{min} <= $tmp->{max}) {
             if ($range{max} <= $tmp->{max}) {
                 push @return_union, $tmp;
-                $added = 1;
+                $added = "foo";
             } else {
                 $range{min} = $tmp->{min};
             }
@@ -80,7 +80,7 @@ sub add_range($$$)
         }
     }
 
-    if (!$added) {
+    if ($added eq "") {
         push @return_union, \%range;
     }
 
